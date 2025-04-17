@@ -1,0 +1,222 @@
+==================================================================================================================
+
+1. Test for GET request
+    Command: Command: curl -s -x http://localhost:12345 http://httpbin.org/forms/post > /dev/null
+
+Proxy log file contents:
+-1: NOTE Proxy started on port 12345
+-1: NOTE Proxy started and waiting for connections
+-1: NOTE Spawned new thread for client connection. Active threads: 1
+0: "127.0.0.1" from GET http://httpbin.org/forms/post HTTP/1.1 @ Tue Mar  4 01:11:09 2025
+0: not in cache 
+0: Requesting "GET http://httpbin.org/forms/post HTTP/1.1" from httpbin.org
+0: Received "HTTP/1.1 200  OK" from httpbin.org
+
+==================================================================================================================
+
+2. Test for POST request
+    Command: Command: curl -s -x http://localhost:12345 -d custname=Jerry&custtel=1234567890&custemail=123456789@qq.com&size=medium&topping=bacon&topping=cheese&delivery=&comments= http://httpbin.org/post > /dev/null
+
+Proxy log file contents:
+-1: NOTE Proxy started on port 12345
+-1: NOTE Proxy started and waiting for connections
+-1: NOTE Spawned new thread for client connection. Active threads: 1
+0: "127.0.0.1" from POST http://httpbin.org/post HTTP/1.1 @ Tue Mar  4 01:13:57 2025
+0: Requesting "POST http://httpbin.org/post HTTP/1.1" from httpbin.org
+0: NOTE Getting remaining body data
+0: Received "HTTP/1.1 200  OK" from httpbin.org
+0: Responding "HTTP/1.1 200  OK"
+
+==================================================================================================================
+
+3. Test for CONNECT (HTTPS)
+    Command: curl -s -x http://localhost:12345 https://www.facebook.com/ > /dev/null
+
+Proxy log file contents:
+-1: NOTE Proxy started on port 12345
+-1: NOTE Proxy started and waiting for connections
+-1: NOTE Spawned new thread for client connection. Active threads: 1
+0: "127.0.0.1" from CONNECT www.facebook.com:443 HTTP/1.1 @ Tue Mar  4 01:14:55 2025
+0: Responding "HTTP/1.1 200 Connection established"
+0: NOTE Connection closed by client
+0: Tunnel closed
+
+==================================================================================================================
+
+4. Test for chunked encoding
+    Command: curl -s -x http://localhost:12345 http://www.httpwatch.com/httpgallery/chunked/chunkedimage.aspx > /dev/null
+
+Proxy log file contents:
+-1: NOTE Proxy started on port 12345
+-1: NOTE Proxy started and waiting for connections
+-1: NOTE Spawned new thread for client connection. Active threads: 1
+0: "127.0.0.1" from GET http://www.httpwatch.com/httpgallery/chunked/chunkedimage.aspx HTTP/1.1 @ Tue Mar  4 01:15:19 2025
+0: not in cache 
+0: Requesting "GET http://www.httpwatch.com/httpgallery/chunked/chunkedimage.aspx HTTP/1.1" from www.httpwatch.com
+0: NOTE Detected chunked encoding
+0: Received "HTTP/1.1 200  OK" from www.httpwatch.com
+0: NOTE Cache-Control: no-cache, no-store
+0: not cacheable because no-store directive
+
+==================================================================================================================
+
+5. Test for ETag validation (first request)
+    Command: curl -s -x http://localhost:12345 http://run.mocky.io/v3/0f43637d-ca02-44c6-bfc9-ae3404c95c0d > /dev/null
+
+Proxy log file contents:
+-1: NOTE Proxy started on port 12345
+-1: NOTE Proxy started and waiting for connections
+-1: NOTE Spawned new thread for client connection. Active threads: 1
+0: "127.0.0.1" from GET http://run.mocky.io/v3/0f43637d-ca02-44c6-bfc9-ae3404c95c0d HTTP/1.1 @ Tue Mar  4 01:15:53 2025
+0: not in cache 
+0: Requesting "GET http://run.mocky.io/v3/0f43637d-ca02-44c6-bfc9-ae3404c95c0d HTTP/1.1" from run.mocky.io
+0: Received "HTTP/1.1 200  OK" from run.mocky.io
+0: NOTE ETag: "abc123"
+0: NOTE Cache-Control: must-revalidate
+0: cached, expires at Tue, 04 Mar 2025 01:15:54 GMT
+
+==================================================================================================================
+
+6. Test for ETag validation (second request - should hit cache)
+    Command (twice): curl -s -x http://localhost:12345 http://run.mocky.io/v3/0f43637d-ca02-44c6-bfc9-ae3404c95c0d > /dev/null
+
+Proxy log file contents:
+-1: NOTE Proxy started on port 12345
+-1: NOTE Proxy started and waiting for connections
+-1: NOTE Spawned new thread for client connection. Active threads: 1
+0: "127.0.0.1" from GET http://run.mocky.io/v3/0f43637d-ca02-44c6-bfc9-ae3404c95c0d HTTP/1.1 @ Tue Mar  4 01:16:46 2025
+0: not in cache 
+0: Requesting "GET http://run.mocky.io/v3/0f43637d-ca02-44c6-bfc9-ae3404c95c0d HTTP/1.1" from run.mocky.io
+0: Received "HTTP/1.1 200  OK" from run.mocky.io
+0: NOTE ETag: "abc123"
+0: NOTE Cache-Control: must-revalidate
+0: cached, expires at Tue, 04 Mar 2025 01:16:46 GMT
+-1: NOTE Spawned new thread for client connection. Active threads: 2
+1: "127.0.0.1" from GET http://run.mocky.io/v3/0f43637d-ca02-44c6-bfc9-ae3404c95c0d HTTP/1.1 @ Tue Mar  4 01:16:56 2025
+1: in cache, requires validation
+1: NOTE Using ETag for validation: "abc123"
+1: NOTE Using Last-Modified for validation: Mon, 20 Feb 2024 10:00:00 GMT
+1: Requesting "GET http://run.mocky.io/v3/0f43637d-ca02-44c6-bfc9-ae3404c95c0d HTTP/1.1
+Host: run.mocky.io
+User-Agent: curl/7.81.0
+If-None-Match: "abc123"
+If-Modified-Since: Mon, 20 Feb 2024 10:00:00 GMT
+
+" from run.mocky.io
+1: Received "HTTP/1.1 200  OK" from run.mocky.io
+1: NOTE Content changed - using new response
+1: Requesting "GET http://run.mocky.io/v3/0f43637d-ca02-44c6-bfc9-ae3404c95c0d HTTP/1.1" from run.mocky.io
+1: Received "HTTP/1.1 200  OK" from run.mocky.io
+1: NOTE ETag: "abc123"
+1: NOTE Cache-Control: must-revalidate
+1: cached, expires at Tue, 04 Mar 2025 01:16:57 GMT
+
+==================================================================================================================
+
+7. Test for Last-Modified validation (first request)
+    Command: curl -s -x http://localhost:12345 http://run.mocky.io/v3/0c2d20a9-0fb0-4a33-a10d-8181974a80d9 > /dev/null
+
+Proxy log file contents:
+-1: NOTE Proxy started on port 12345
+-1: NOTE Proxy started and waiting for connections
+-1: NOTE Spawned new thread for client connection. Active threads: 1
+0: "127.0.0.1" from GET http://run.mocky.io/v3/0c2d20a9-0fb0-4a33-a10d-8181974a80d9 HTTP/1.1 @ Tue Mar  4 01:18:41 2025
+0: not in cache 
+0: Requesting "GET http://run.mocky.io/v3/0c2d20a9-0fb0-4a33-a10d-8181974a80d9 HTTP/1.1" from run.mocky.io
+0: Received "HTTP/1.1 200  OK" from run.mocky.io
+0: NOTE Cache-Control: must-revalidate
+0: cached, expires at Tue, 04 Mar 2025 01:18:41 GMT
+
+==================================================================================================================
+
+8. Test for Last-Modified validation (second request - should hit cache)
+    Command (twice): curl -s -x http://localhost:12345 http://run.mocky.io/v3/0c2d20a9-0fb0-4a33-a10d-8181974a80d9 > /dev/null
+
+Proxy log file contents:
+-1: NOTE Proxy started on port 12345
+-1: NOTE Proxy started and waiting for connections
+-1: NOTE Spawned new thread for client connection. Active threads: 1
+0: "127.0.0.1" from GET http://run.mocky.io/v3/0c2d20a9-0fb0-4a33-a10d-8181974a80d9 HTTP/1.1 @ Tue Mar  4 01:19:14 2025
+0: not in cache 
+0: Requesting "GET http://run.mocky.io/v3/0c2d20a9-0fb0-4a33-a10d-8181974a80d9 HTTP/1.1" from run.mocky.io
+0: Received "HTTP/1.1 200  OK" from run.mocky.io
+0: NOTE Cache-Control: must-revalidate
+0: cached, expires at Tue, 04 Mar 2025 01:19:14 GMT
+-1: NOTE Spawned new thread for client connection. Active threads: 2
+1: "127.0.0.1" from GET http://run.mocky.io/v3/0c2d20a9-0fb0-4a33-a10d-8181974a80d9 HTTP/1.1 @ Tue Mar  4 01:19:24 2025
+1: in cache, requires validation
+1: NOTE Using Last-Modified for validation: Mon, 20 Feb 2024 10:00:00 GMT
+1: Requesting "GET http://run.mocky.io/v3/0c2d20a9-0fb0-4a33-a10d-8181974a80d9 HTTP/1.1
+Host: run.mocky.io
+User-Agent: curl/7.81.0
+If-Modified-Since: Mon, 20 Feb 2024 10:00:00 GMT
+
+" from run.mocky.io
+1: Received "HTTP/1.1 200  OK" from run.mocky.io
+1: NOTE Content changed - using new response
+1: Requesting "GET http://run.mocky.io/v3/0c2d20a9-0fb0-4a33-a10d-8181974a80d9 HTTP/1.1" from run.mocky.io
+1: Received "HTTP/1.1 200  OK" from run.mocky.io
+1: NOTE Cache-Control: must-revalidate
+1: cached, expires at Tue, 04 Mar 2025 01:19:25 GMT
+
+==================================================================================================================
+
+9. Test for 502 Bad gateway
+    Command: curl -s -x http://localhost:12345 http://run.mocky.io/v3/c2978b1a-63c4-4a2d-aec1-10b148ebe937 > /dev/null
+
+Proxy log file contents:
+-1: NOTE Proxy started on port 12345
+-1: NOTE Proxy started and waiting for connections
+-1: NOTE Spawned new thread for client connection. Active threads: 1
+0: "127.0.0.1" from GET http://run.mocky.io/v3/c2978b1a-63c4-4a2d-aec1-10b148ebe937 HTTP/1.1 @ Tue Mar  4 01:20:40 2025
+0: not in cache 
+0: Requesting "GET http://run.mocky.io/v3/c2978b1a-63c4-4a2d-aec1-10b148ebe937 HTTP/1.1" from run.mocky.io
+0: Received "HTTP/1.1 502  Bad Gateway" from run.mocky.io
+0: Responding "HTTP/1.1 502  Bad Gateway"
+
+==================================================================================================================
+
+10. Test for 400 Bad Request
+    Command: curl -s -x http://localhost:12345 http://run.mocky.io/v3/ec6c1606-5dc4-4461-a2cf-5fed1713222b > /dev/null
+
+Proxy log file contents:
+-1: NOTE Proxy started on port 12345
+-1: NOTE Proxy started and waiting for connections
+-1: NOTE Spawned new thread for client connection. Active threads: 1
+0: "127.0.0.1" from GET http://run.mocky.io/v3/ec6c1606-5dc4-4461-a2cf-5fed1713222b HTTP/1.1 @ Tue Mar  4 01:21:01 2025
+0: not in cache 
+0: Requesting "GET http://run.mocky.io/v3/ec6c1606-5dc4-4461-a2cf-5fed1713222b HTTP/1.1" from run.mocky.io
+0: Received "HTTP/1.1 400  Bad Request" from run.mocky.io
+0: Responding "HTTP/1.1 400  Bad Request"
+
+==================================================================================================================
+
+11. Test for 429 Too Many Requests
+    Command: curl -s -x http://localhost:12345 http://run.mocky.io/v3/4fb2ee14-334e-494c-8d7c-eb11f6f01ec2 > /dev/null
+
+Proxy log file contents:
+-1: NOTE Proxy started on port 12345
+-1: NOTE Proxy started and waiting for connections
+-1: NOTE Spawned new thread for client connection. Active threads: 1
+0: "127.0.0.1" from GET http://run.mocky.io/v3/4fb2ee14-334e-494c-8d7c-eb11f6f01ec2 HTTP/1.1 @ Tue Mar  4 01:21:19 2025
+0: not in cache 
+0: Requesting "GET http://run.mocky.io/v3/4fb2ee14-334e-494c-8d7c-eb11f6f01ec2 HTTP/1.1" from run.mocky.io
+0: Received "HTTP/1.1 429  Too Many Requests" from run.mocky.io
+0: Responding "HTTP/1.1 429  Too Many Requests"
+
+==================================================================================================================
+
+12. Test for 204 No Content
+    Command: curl -s -x http://localhost:12345 http://run.mocky.io/v3/18149ac2-b458-418a-af2e-efc2301071e9 > /dev/null
+
+Proxy log file contents:
+-1: NOTE Proxy started on port 12345
+-1: NOTE Proxy started and waiting for connections
+-1: NOTE Spawned new thread for client connection. Active threads: 1
+0: "127.0.0.1" from GET http://run.mocky.io/v3/18149ac2-b458-418a-af2e-efc2301071e9 HTTP/1.1 @ Tue Mar  4 01:21:42 2025
+0: not in cache 
+0: Requesting "GET http://run.mocky.io/v3/18149ac2-b458-418a-af2e-efc2301071e9 HTTP/1.1" from run.mocky.io
+0: Received "HTTP/1.1 204  No Content" from run.mocky.io
+0: Responding "HTTP/1.1 204  No Content"
+
+==================================================================================================================

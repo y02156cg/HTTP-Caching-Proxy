@@ -1,0 +1,12 @@
+version: '2'
+
+services:
+  proxy:
+    build: ./src
+    volumes:
+      - ./src:/src
+      - ./logs:/var/log/erss
+    ports:
+      - "12345:12345"
+    working_dir: /src
+    command: ["/bin/sh", "-c", "make && ./main 12345"]

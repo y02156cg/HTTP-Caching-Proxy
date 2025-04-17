@@ -1,0 +1,56 @@
+1. In response.cpp:
+    1.1  When Parses the `Cache-Control` header and extracts caching directives in **parseCacheControl()**:
+       - The function catches exceptions when parsing `max-age` or `s-maxage` values.
+       - If `stoi(directive.substr(8))` or `stoi(directive.substr(9))` throws an exception 
+         (e.g., due to a non-numeric value), `max_age` is set to `-1`, indicating an invalid or missing value.
+       - The function also ensures that `smaxage` only overrides `max-age` if the response is `public`.
+    1.2  When Parses an HTTP response string and extracts relevant fields in **parseResponse(const string& httpResponse)**:
+       - Malformed Response Handling:
+          If the response string is empty or malformed, a `runtime_error` is thrown.
+          If the `status_line` cannot be read, the function throws `runtime_error("Error: Status line cannot be read.")`.
+       - Invalid Header Values:
+          If `Content-Length` contains a non-numeric value, `stoi(value)` may throw `std::invalid_argument` or `std::out_of_range`.
+       - The `catch` block ensures that `response` is properly deallocated before rethrowing the exception.
+
+2. In main.cpp:
+    2.1 When exceptions in server initialization or any runtime errors happen, the function catched and reports them.
+    2.2 If the number of command arguments is not 2, then print error message and exit.
+
+3. In log.cpp:
+   When constrcuting a Logger object, if the log file can't be opened, then print error message and exit.
+
+4. In proxy.cpp:
+   4.1 In proxy constructor: 
+      If fail to create socket(server_fd < 0), or set socket options (setsockopt < 0), 
+         or bind to port(bind < 0), or listen on socket(listen < 0),
+         throw runtime_error and report the error message.
+   4.2 In run(): 
+      If client connection fails (client_fd < 0), log error and continue to listen.
+      If thread creation fails, log the error and close the client conenction.
+   4.3 In processConnect()/processPost()/processGet():
+      If request.port is non-numeric character (stoi(request.port) throws exception), catch the exception and use default port 80.
+      If connectServer() fails (server_fd<0), log the error message and send error response 502 and return.
+      If receiveFromSocket() returns null, log the error message and close server_fd.
+      If parseResponse() throws exception, log the error message and delete the validaiton_resp.
+      If status code is 304 not modified, use the cached response.
+      If parse validation response throws exception then log the erorr message and delete validation_resp.
+      If receive validation response throws exception then log the erorr message and delete validation_resp.
+      If send() fails (send()==-1), log the error message.
+      ...
+   4.6 In receiveClient():
+      If the http_request is empty, log error message, close client_fd and return.
+      If parseRequest() throws an exception, log the error message, reply to client with the error response 400 and finally close the client_fd.
+      If request.method is not GET, POST or CONNECT, log error message and send 501 error response and clode the client_fd.
+      If any exception happens, log the error message and close the client_fd.
+   4.7 In handleCaching():
+      If the response is not cacheable, log the reason and delete the response.
+   4.8 In connectServer():
+      If available IP address and port fetch(getaddrinfo()) fails (status!=0), log the roor message and return error code. 
+      If socket creation fails (server_fd == -1), skip the current address.
+      If connecting to server fails (connect()==-1), close the server_fd and and continue.
+      If connect() fails at all addresses in server_info_list (p==NULL), log the error message and return error code.
+   4.9 In receiveFromSocket():
+      If poll() fails (rv==-1), throw a runtime_error; if running out of time (rv == 0), break the loop and return.
+      If recv() fails (bytes_received < 0), print the error message, or remote server cloed socket (bytes_received == 0), break the loop and return.
+
+
